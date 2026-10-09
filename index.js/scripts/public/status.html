@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book a Repair | School IT Repair Shop</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="/" class="brand-logo">🔧 Campus<span>Tech Repair</span></a>
+      <ul class="nav-links">
+        <li><a href="/">Services</a></li>
+        <li><a href="/book.html" class="active">Book Service</a></li>
+        <li><a href="/status.html">Check Status</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <div class="form-container">
+      <h2 style="margin-bottom: 0.5rem; color: var(--primary);">Schedule Repair Appointment</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Fill out your information to lock in your hardware drop-off time.</p>
+
+      <form id="booking-form" novalidate>
+        <!-- Service Selection -->
+        <div class="form-group" id="group-service_id">
+          <label for="service_id">Select Service *</label>
+          <select id="service_id" name="service_id" class="form-control" required>
+            <option value="">-- Choose a Service --</option>
+          </select>
+          <span class="field-error" id="error-service_id">Please select a service.</span>
+        </div>
+
+        <!-- Date Selection -->
+        <div class="form-group" id="group-booking_date">
+          <label for="booking_date">Appointment Date *</label>
+          <input type="date" id="booking_date" name="booking_date" class="form-control" required>
+          <span class="field-error" id="error-booking_date">Please select a valid date.</span>
+        </div>
+
+        <!-- Time Slot Selection -->
+        <div class="form-group" id="group-booking_time">
+          <label>Select Time Slot (7:00 AM - 5:00 PM) *</label>
+          <input type="hidden" id="booking_time" name="booking_time" required>
+          <div id="time-slots-container" class="time-slots-grid">
+            <!-- Dynamically populated 30-min buttons -->
+          </div>
+          <span class="field-error" id="error-booking_time">Please select a time slot.</span>
+        </div>
+
+        <!-- Guests / Devices Count -->
+        <div class="form-group" id="group-guests">
+          <label for="guests">Number of Devices / Visitors *</label>
+          <input type="number" id="guests" name="guests" class="form-control" value="1" min="1" max="5" required>
+          <span class="field-error" id="error-guests">Guests/Devices must be between 1 and 5.</span>
+        </div>
+
+        <!-- Contact Name -->
+        <div class="form-group" id="group-name">
+          <label for="name">Full Name *</label>
+          <input type="text" id="name" name="name" class="form-control" placeholder="e.g. Juan dela Cruz" required>
+          <span class="field-error" id="error-name">Please enter your full name.</span>
+        </div>
+
+        <!-- Contact Phone -->
+        <div class="form-group" id="group-contact">
+          <label for="contact">Contact / Mobile Number *</label>
+          <input type="tel" id="contact" name="contact" class="form-control" placeholder="09171234567" required>
+          <span class="field-error" id="error-contact">Please enter a valid mobile or contact number.</span>
+        </div>
+
+        <!-- Email Address -->
+        <div class="form-group" id="group-email">
+          <label for="email">School Email Address *</label>
+          <input type="email" id="email" name="email" class="form-control" placeholder="student@school.edu.ph" required>
+          <span class="field-error" id="error-email">Please enter a valid email address.</span>
+        </div>
+
+        <!-- Issue Notes -->
+        <div class="form-group" id="group-notes">
+          <label for="notes">Issue Description / Device Notes</label>
+          <textarea id="notes" name="notes" class="form-control" placeholder="Describe the issue with your computer or device..."></textarea>
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn btn-accent" style="width: 100%;">
+          <span>Confirm Booking</span>
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; School IT Department Computer Repair Activity. All prices in Philippine Pesos (PHP).</p>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const form = document.getElementById("booking-form");
+      const serviceSelect = document.getElementById("service_id");
+      const timeSlotsContainer = document.getElementById("time-slots-container");
+      const timeInput = document.getElementById("booking_time");
+      const submitBtn = document.getElementById("submit-btn");
+
+      // Prevent past dates
+      const todayStr = new Date().toISOString().split("T")[0];
+      document.getElementById("booking_date").setAttribute("min", todayStr);
+
+      // Pre-select service from URL if provided
+      const urlParams = new URLSearchParams(window.location.search);
+      const preselectedServiceId = urlParams.get("service_id");
+
+      // Load Services Dropdown
+      try {
+        const res = await fetch("/api/services");
+        const services = await res.json();
+        if (res.ok && Array.isArray(services)) {
+          services.forEach(svc => {
+            const opt = document.createElement("option");
+            opt.value = svc.id;
+            opt.textContent = `${svc.name} (${formatPeso(svc.price)})`;
+            if (preselectedServiceId && svc.id === preselectedServiceId) {
+              opt.selected = true;
+            }
+            serviceSelect.appendChild(opt);
+          });
+        }
+      } catch (err) {
+        showToast("Failed to fetch available services.", "error");
+      }
+
+      // Generate Time Slots (7:00 AM to 5:00 PM, 30-min increments)
+      const slots = [];
+      for (let hour = 7; hour <= 17; hour++) {
+        const time00 = `${String(hour).padStart(2, "0")}:00`;
+        slots.push(time00);
+        if (hour < 17) {
+          const time30 = `${String(hour).padStart(2, "0")}:30`;
+          slots.push(time30);
+        }
+      }
+
+      slots.forEach(timeVal => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "slot-btn";
+        btn.textContent = formatTime(timeVal);
+        btn.dataset.time = timeVal;
+
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".slot-btn").forEach(b => b.classList.remove("selected"));
+          btn.classList.add("selected");
+          timeInput.value = timeVal;
+          clearFieldError("booking_time");
+        });
+
+        timeSlotsContainer.appendChild(btn);
+      });
+
+      // Clear inline error formatting
+      function clearFieldError(fieldId) {
+        const group = document.getElementById(`group-${fieldId}`);
+        if (group) group.classList.remove("has-error");
+      }
+
+      function setFieldError(fieldId, msg) {
+        const group = document.getElementById(`group-${fieldId}`);
+        const errEl = document.getElementById(`error-${fieldId}`);
+        if (group && errEl) {
+          if (msg) errEl.textContent = msg;
+          group.classList.add("has-error");
+        }
+      }
+
+      // Form validation
+      function validateForm() {
+        let isValid = true;
+        
+        // Reset errors
+        document.querySelectorAll(".form-group").forEach(g => g.classList.remove("has-error"));
+
+        if (!serviceSelect.value) {
+          setFieldError("service_id", "Please select a repair service.");
+          isValid = false;
+        }
+
+        const dateVal = document.getElementById("booking_date").value;
+        if (!dateVal) {
+          setFieldError("booking_date", "Please select an appointment date.");
+          isValid = false;
+        }
+
+        if (!timeInput.value) {
+          setFieldError("booking_time", "Please select a time slot.");
+          isValid = false;
+        }
+
+        const guestsVal = parseInt(document.getElementById("guests").value, 10);
+        if (isNaN(guestsVal) || guestsVal < 1 || guestsVal > 5) {
+          setFieldError("guests", "Please enter between 1 and 5 devices/guests.");
+          isValid = false;
+        }
+
+        const nameVal = document.getElementById("name").value.trim();
+        if (!nameVal) {
+          setFieldError("name", "Full name is required.");
+          isValid = false;
+        }
+
+        const contactVal = document.getElementById("contact").value.trim();
+        if (!contactVal || contactVal.length < 7) {
+          setFieldError("contact", "Enter a valid contact number.");
+          isValid = false;
+        }
+
+        const emailVal = document.getElementById("email").value.trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailVal || !emailRegex.test(emailVal)) {
+          setFieldError("email", "Enter a valid email address.");
+          isValid = false;
+        }
+
+        return isValid;
+      }
+
+      // Handle submission
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        if (!validateForm()) {
+          showToast("Please correct the highlighted errors.", "error");
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.querySelector("span").textContent = "Submitting Booking...";
+
+        const payload = {
+          service_id: serviceSelect.value,
+          booking_date: document.getElementById("booking_date").value,
+          booking_time: timeInput.value,
+          guests: parseInt(document.getElementById("guests").value, 10),
+          name: document.getElementById("name").value.trim(),
+          contact: document.getElementById("contact").value.trim(),
+          email: document.getElementById("email").value.trim(),
+          notes: document.getElementById("notes").value.trim()
+        };
+
+        try {
+          const res = await fetch("/api/bookings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || "Failed to submit repair booking.");
+          }
+
+          showToast("Booking submitted successfully!", "success");
+          setTimeout(() => {
+            window.location.href = `/confirmation.html?ref=${data.reference}`;
+          }, 800);
+
+        } catch (err) {
+          showToast(err.message, "error");
+          submitBtn.disabled = false;
+          submitBtn.querySelector("span").textContent = "Confirm Booking";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

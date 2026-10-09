@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Confirmation | School IT Repair Shop</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="/" class="logo">💻 School IT <span>Repair Hub</span></a>
+      <ul class="nav-links">
+        <li><a href="/">Services</a></li>
+        <li><a href="/booking.html">Book Appointment</a></li>
+        <li><a href="/confirmation.html" class="active">Check Status</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <div class="lookup-box">
+      <input type="text" id="search-ref" placeholder="Enter Reference Code (e.g. REPAIR-XXXXXX)">
+      <button id="lookup-btn" class="btn btn-secondary">Search</button>
+    </div>
+
+    <div id="confirmation-display">
+      <p style="text-align: center; color: var(--text-muted);">Enter a reference number above or submit a booking to view details.</p>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; School IT Department Repair Activity. All prices listed in Philippine Pesos (₱).</p>
+  </footer>
+
+  <script src="/js/confirmation.js"></script>
+</body>
+</html>
